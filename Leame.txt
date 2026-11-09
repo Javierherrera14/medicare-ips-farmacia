@@ -1,0 +1,26 @@
+================================================================================
+PROYECTO: SISTEMA DE GESTIÓN Y DESPACHO DE FÓRMULAS MÉDICAS (MediCare IPS)
+ASIGNATURA: Bases de Datos II
+INTEGRANTES:
+  - Javier Humberto Herrera Naranjo
+  - Andrés Felipe Jácome Torrado
+MOTOR DE BASE DE DATOS: PostgreSQL (Esquema: farmacia)
+================================================================================
+
+
+================================================================================
+INSTRUCCIONES DE EJECUCIÓN DE LA APLICACIÓN (BACKEND Y FRONTEND)
+================================================================================
+
+1. ENCENDER EL BACKEND (Python + FastAPI):
+   Abra una terminal en la carpeta 'backend/' y ejecute:
+     venv\Scripts\activate
+     uvicorn main:app --reload --port 8000
+
+   - Verificación de salud BD: http://localhost:8000/api/health
+   - Documentación Swagger UI: http://localhost:8000/docs
+
+2. ABRIR EL FRONTEND (MediCare IPS):
+   - Desde GitHub Pages (URL pública desplegada) o abriendo 'frontend/index.html'
+     con Live Server en el navegador.
+================================================================================

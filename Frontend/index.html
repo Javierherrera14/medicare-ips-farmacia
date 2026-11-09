@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCare IPS | Sistema de Gestión y Despacho de Fórmulas Médicas</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5.3 CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Bootstrap Icons CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- SweetAlert2 CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  
+  <!-- Estilos Personalizados Clínicos -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Overlay para menú en dispositivos móviles -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div id="app-container">
+    
+    <!-- ==============================================================
+         SIDEBAR LATERAL (Estilo Clínico / Farmacéutico Oscuro)
+         ============================================================== -->
+    <aside id="sidebar">
+      <!-- Marca y Logotipo -->
+      <div class="sidebar-brand">
+        <div class="brand-icon-wrapper">
+          <i class="bi bi-capsule-pill"></i>
+        </div>
+        <div>
+          <h1 class="brand-title">MediCare IPS</h1>
+          <p class="brand-subtitle">Farmacia & Fórmulas Médicas</p>
+        </div>
+      </div>
+
+      <!-- Menú de Navegación (9 Módulos) -->
+      <nav class="sidebar-menu">
+        <div class="menu-category-title">Operaciones & Auditoría</div>
+        
+        <!-- 1. Despachos (Principal con Triggers) -->
+        <button class="nav-item-btn active" data-target="view-despachos" id="nav-despachos">
+          <i class="bi bi-box-seam"></i>
+          <span>Despachos</span>
+          <span class="nav-badge bg-primary text-white">Triggers</span>
+        </button>
+
+        <!-- 2. Historial de Stock (Auditoría) -->
+        <button class="nav-item-btn" data-target="view-historial" id="nav-historial">
+          <i class="bi bi-clock-history"></i>
+          <span>Historial Stock</span>
+          <span class="nav-badge bg-info text-dark">Audit</span>
+        </button>
+
+        <!-- 3. Consultas y Reportes DQL -->
+        <button class="nav-item-btn" data-target="view-consultas" id="nav-consultas">
+          <i class="bi bi-graph-up-arrow"></i>
+          <span>Reportes DQL</span>
+          <span class="nav-badge bg-warning text-dark">8 Niveles</span>
+        </button>
+
+        <div class="menu-category-title">Prescripción e Inventario</div>
+
+        <!-- 4. Fórmulas Médicas -->
+        <button class="nav-item-btn" data-target="view-formulas" id="nav-formulas">
+          <i class="bi bi-file-earmark-medical"></i>
+          <span>Fórmulas Médicas</span>
+        </button>
+
+        <!-- 5. Medicamentos -->
+        <button class="nav-item-btn" data-target="view-medicamentos" id="nav-medicamentos">
+          <i class="bi bi-prescription2"></i>
+          <span>Medicamentos</span>
+        </button>
+
+        <div class="menu-category-title">Directorio Clínico</div>
+
+        <!-- 6. Pacientes -->
+        <button class="nav-item-btn" data-target="view-pacientes" id="nav-pacientes">
+          <i class="bi bi-people"></i>
+          <span>Pacientes</span>
+        </button>
+
+        <!-- 7. Prestadores (EPS) -->
+        <button class="nav-item-btn" data-target="view-prestadores" id="nav-prestadores">
+          <i class="bi bi-hospital"></i>
+          <span>Prestadores (EPS)</span>
+        </button>
+
+        <!-- 8. Médicos -->
+        <button class="nav-item-btn" data-target="view-medicos" id="nav-medicos">
+          <i class="bi bi-person-badge"></i>
+          <span>Cuerpo Médico</span>
+        </button>
+
+        <!-- 9. Usuarios del Sistema -->
+        <button class="nav-item-btn" data-target="view-usuarios" id="nav-usuarios">
+          <i class="bi bi-shield-lock"></i>
+          <span>Usuarios / Empleados</span>
+        </button>
+      </nav>
+
+      <!-- Pie del Sidebar con enlace a Info de Triggers -->
+      <div class="sidebar-footer">
+        <button class="btn btn-sm btn-outline-light w-100 d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#modal-info-triggers">
+          <i class="bi bi-info-circle"></i>
+          <span>Documentación Triggers</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ==============================================================
+         MAIN WRAPPER (Topbar + Contenido Dinámico)
+         ============================================================== -->
+    <div id="main-wrapper">
+      
+      <!-- Barra Superior (Topbar) -->
+      <header id="topbar">
+        <div class="topbar-left">
+          <button class="btn btn-outline-secondary d-lg-none" id="btn-toggle-sidebar" title="Alternar menú">
+            <i class="bi bi-list fs-5"></i>
+          </button>
+          <div>
+            <h2 class="h5 mb-0 fw-bold text-dark" id="current-module-title">Despachos de Medicamentos</h2>
+            <small class="text-muted" id="current-module-subtitle">Control de entregas y activación de Triggers PostgreSQL</small>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Indicador de Salud del Backend / PostgreSQL -->
+          <div id="health-indicator-container">
+            <span class="health-pill disconnected" id="health-pill" title="Comprobando conexión con FastAPI y PostgreSQL...">
+              <span class="pulse-dot"></span>
+              <span id="health-text">Conectando...</span>
+            </span>
+          </div>
+
+          <button class="btn btn-sm btn-light border text-secondary" id="btn-refresh-health" title="Verificar estado del servidor">
+            <i class="bi bi-arrow-repeat"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Área de Contenido Principal -->
+      <main id="content-area">
+
+        <!-- ============================================================
+             1. VISTA: DESPACHOS (MÓDULO PRINCIPAL CON TRIGGERS)
+             ============================================================ -->
+        <section class="view-section active" id="view-despachos">
+          
+          <!-- Tarjeta de Despachos -->
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex align-items-center gap-2">
+                <h3 class="card-title-clinical">
+                  <i class="bi bi-box-seam"></i>
+                  <span>Listado de Despachos Realizados</span>
+                </h3>
+                <span class="badge bg-secondary-subtle text-secondary" id="count-despachos">0 registros</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm" style="max-width: 240px;">
+                  <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" class="form-control border-start-0 ps-0" id="search-despachos" placeholder="Filtrar despachos...">
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="cargarDespachos()" title="Recargar lista">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button class="btn btn-sm btn-med-primary" onclick="abrirModalCrearDespacho()">
+                  <i class="bi bi-plus-lg"></i>
+                  <span>Registrar Despacho</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-clinical table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th># ID</th>
+                      <th>Fórmula & Paciente</th>
+                      <th>Medicamento</th>
+                      <th>Despachador</th>
+                      <th class="text-center">Formulada</th>
+                      <th class="text-center">Entregada</th>
+                      <th class="text-center text-primary">Pendiente *</th>
+                      <th class="text-center">Estado Entrega *</th>
+                      <th>Fecha</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-despachos">
+                    <!-- Se llena dinámicamente con JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Pie de tabla aclaratorio -->
+              <div class="p-3 bg-light border-top d-flex align-items-center justify-content-between small text-muted">
+                <span><i class="bi bi-info-circle text-primary me-1"></i> * <strong>Campos calculados por Trigger 1:</strong> <code>cantidad_pendiente</code> y <code>estado_entrega</code> no son modificables manualmente; PostgreSQL los calcula según la lógica de negocio.</span>
+                <span class="fst-italic">Endpoint: <code>/api/despachos</code></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================================
+             2. VISTA: HISTORIAL DE STOCK (AUDITORÍA DE TRIGGERS)
+             ============================================================ -->
+        <section class="view-section" id="view-historial">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title-clinical">
+                  <i class="bi bi-clock-history text-info"></i>
+                  <span>Auditoría de Movimientos de Stock (Solo Lectura)</span>
+                </h3>
+                <small class="text-muted">Registro inmutable generado exclusivamente por el Trigger 2 y Trigger 3 de PostgreSQL</small>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-2">
+                  <i class="bi bi-shield-lock-fill me-1"></i> Trazabilidad 100% Automatizada
+                </span>
+                <button class="btn btn-sm btn-primary" onclick="cargarHistorialStock()">
+                  <i class="bi bi-arrow-repeat me-1"></i> Refrescar en Vivo
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-clinical table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th># Audit</th>
+                      <th>Medicamento & Lote</th>
+                      <th>Despacho Asociado</th>
+                      <th class="text-center">Unidades Movidas</th>
+                      <th class="text-center">Transición Stock</th>
+                      <th>Usuario BD</th>
+                      <th>Fecha y Hora del Movimiento</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-historial">
+                    <!-- Dinámico -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 bg-light border-top small text-muted d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-lightning-charge text-warning me-1"></i> Demostración en vivo: Cada vez que registras, editas o eliminas un despacho, esta tabla se actualiza sin intervención manual.</span>
+                <span class="fst-italic">Endpoint: <code>/api/historial-stock</code></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================================
+             3. VISTA: CONSULTAS Y REPORTES DQL (8 CONSULTAS POR NIVEL)
+             ============================================================ -->
+        <section class="view-section" id="view-consultas">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title-clinical">
+                  <i class="bi bi-terminal text-warning"></i>
+                  <span>Consultas y Reportes DQL por Nivel de Complejidad</span>
+                </h3>
+                <small class="text-muted">Ejecuta en tiempo real las 8 consultas SQL parametrizadas del esquema farmacéutico</small>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <!-- Selector Interactivo de Reportes (Tarjetas Amigables por Categoría) -->
+              <div class="mb-4">
+                
+                <!-- Categoría 1: Consultas Operativas Rápidas (Nivel Bajo) -->
+                <div class="dql-category-block mb-4">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="dql-level-pill level-bajo"><i class="bi bi-lightning-charge-fill me-1"></i>Consultas Rápidas de Farmacia</span>
+                      <span class="text-muted small">Nivel Bajo • Consultas directas sobre una tabla</span>
+                    </div>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <div class="dql-card active" data-codigo="B1" onclick="ejecutarConsultaDQL('B1')">
+                        <div class="dql-card-top">
+                          <div class="dql-icon icon-bajo"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                          <span class="dql-code-tag tag-bajo">Consulta B1 • Principal</span>
+                        </div>
+                        <h6 class="dql-card-title">Alertas de Stock Bajo y Vencimientos</h6>
+                        <p class="dql-card-desc">Muestra qué medicamentos tienen pocas unidades (&le;150) ordenados por el más próximo a vencer.</p>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="dql-card" data-codigo="B2" onclick="ejecutarConsultaDQL('B2')">
+                        <div class="dql-card-top">
+                          <div class="dql-icon icon-bajo"><i class="bi bi-hourglass-split"></i></div>
+                          <span class="dql-code-tag tag-bajo">Consulta B2</span>
+                        </div>
+                        <h6 class="dql-card-title">Entregas Pendientes o Parciales</h6>
+                        <p class="dql-card-desc">Filtra todos los despachos que aún no se han completado y tienen unidades pendientes por entregar.</p>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="dql-card" data-codigo="B3" onclick="ejecutarConsultaDQL('B3')">
+                        <div class="dql-card-top">
+                          <div class="dql-icon icon-bajo"><i class="bi bi-person-vcard-fill"></i></div>
+                          <span class="dql-code-tag tag-bajo">Consulta B3</span>
+                        </div>
+                        <h6 class="dql-card-title">Directorio de Médicos Especialistas</h6>
+                        <p class="dql-card-desc">Lista alfabéticamente a los profesionales especialistas (distintos a Medicina General).</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Categoría 2: Seguimiento Clínico y Pacientes (Nivel Medio) -->
+                <div class="dql-category-block mb-4">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="dql-level-pill level-medio"><i class="bi bi-diagram-3-fill me-1"></i>Seguimiento de Pacientes y Recetas</span>
+                      <span class="text-muted small">Nivel Medio • Cruce relacional multitabla (INNER JOIN)</span>
+                    </div>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <div class="dql-card" data-codigo="M1" onclick="ejecutarConsultaDQL('M1')">
+                        <div class="dql-card-top">
+                          <div class="dql-icon icon-medio"><i class="bi bi-person-lines-fill"></i></div>
+                          <span class="dql-code-tag tag-medio">Consulta M1 • Principal</span>
+                        </div>
+                        <h6 class="dql-card-title">Pacientes con Medicamentos por Reclamar</h6>
+                        <p class="dql-card-desc">Une datos del paciente, su teléfono y el fármaco exacto que la farmacia le debe entregar.</p>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="dql-card" data-codigo="M2" onclick="ejecutarConsultaDQL('M2')">
+                        <div class="dql-card-top">
+                          <div class="dql-icon icon-medio"><i class="bi bi-file-earmark-check-fill"></i></div>
+                          <span class="dql-code-tag tag-medio">Consulta M2</span>
+                        </div>
+                        <h6 class="dql-card-title">Control de Recetas y Autorizaciones EPS</h6>
+                        <p class="dql-card-desc">Cruza cada fórmula médica con el paciente, su EPS, el médico tratante y si está autorizada.</p>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="dql-card" data-codigo="M3" onclick="ejecutarConsultaDQL('M3')">
+                        <div class="dql-card-top">
+                          <div class="dql-icon icon-medio"><i class="bi bi-clipboard2-pulse-fill"></i></div>
+                          <span class="dql-code-tag tag-medio">Consulta M3</span>
+                        </div>
+                        <h6 class="dql-card-title">Historial de Entregas por Empleado</h6>
+                        <p class="dql-card-desc">Permite auditar qué funcionario de farmacia atendió cada despacho, en qué fecha y qué entregó.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Categoría 3: Analítica y Auditoría Gerencial (Nivel Alto) -->
+                <div class="dql-category-block mb-2">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="dql-level-pill level-alto"><i class="bi bi-bar-chart-line-fill me-1"></i>Inteligencia Gerencial y Auditoría EPS</span>
+                      <span class="text-muted small">Nivel Alto • Agregación (SUM, COUNT, GROUP BY), CASE y Subconsultas</span>
+                    </div>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <div class="dql-card" data-codigo="A1" onclick="ejecutarConsultaDQL('A1')">
+                        <div class="dql-card-top">
+                          <div class="dql-icon icon-alto"><i class="bi bi-building-fill-check"></i></div>
+                          <span class="dql-code-tag tag-alto">Consulta A1 • Principal</span>
+                        </div>
+                        <h6 class="dql-card-title">Efectividad de Entrega por cada EPS</h6>
+                        <p class="dql-card-desc">Consolida por EPS el total de fórmulas, unidades entregadas vs. pendientes y calcula el porcentaje de cumplimiento.</p>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="dql-card" data-codigo="A2" onclick="ejecutarConsultaDQL('A2')">
+                        <div class="dql-card-top">
+                          <div class="dql-icon icon-alto"><i class="bi bi-Cpu-fill bi-boxes"></i></div>
+                          <span class="dql-code-tag tag-alto">Consulta A2</span>
+                        </div>
+                        <h6 class="dql-card-title">Semáforo de Bodega para Pedidos de Alta Demanda</h6>
+                        <p class="dql-card-desc">Evalúa fórmulas que superan el promedio general y diagnostica en tiempo real si el stock alcanza para cubrir pendientes.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Visualizador de Código SQL Ejecutado -->
+              <div class="sql-container">
+                <div class="sql-header">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary" id="sql-badge-codigo">B1</span>
+                    <span class="sql-title" id="sql-report-title">Opción B1 (Principal) - Inventario crítico y vencimientos</span>
+                  </div>
+                  <button class="btn btn-sm btn-dark text-light border-secondary" onclick="copiarCodigoSQL()" title="Copiar código SQL">
+                    <i class="bi bi-clipboard me-1"></i> Copiar SQL
+                  </button>
+                </div>
+                <pre class="sql-code" id="sql-code-block">-- Selecciona una consulta para visualizar su código SQL y resultados</pre>
+              </div>
+
+              <!-- Resultados de la Consulta -->
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="fw-bold mb-0 text-dark">
+                  <i class="bi bi-table me-1 text-primary"></i> Resultados de la Consulta
+                </h6>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-secondary-subtle text-secondary" id="sql-row-count">0 filas</span>
+                  <button class="btn btn-sm btn-outline-secondary" onclick="exportarReporteCSV()" id="btn-export-csv" disabled>
+                    <i class="bi bi-filetype-csv me-1"></i> Exportar CSV
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-responsive border rounded" id="consultas-table-wrapper" style="max-height: 480px; overflow-y: auto;">
+                <table class="table table-clinical table-striped table-hover mb-0" id="table-consultas-results">
+                  <thead id="thead-consultas">
+                    <!-- Dinámico -->
+                  </thead>
+                  <tbody id="tbody-consultas">
+                    <!-- Dinámico -->
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================================
+             4. VISTA: FÓRMULAS MÉDICAS
+             ============================================================ -->
+        <section class="view-section" id="view-formulas">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex align-items-center gap-2">
+                <h3 class="card-title-clinical">
+                  <i class="bi bi-file-earmark-medical text-primary"></i>
+                  <span>Gestión de Fórmulas Médicas</span>
+                </h3>
+                <span class="badge bg-secondary-subtle text-secondary" id="count-formulas">0 registros</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm" style="max-width: 240px;">
+                  <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" class="form-control border-start-0 ps-0" id="search-formulas" placeholder="Filtrar fórmulas...">
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="cargarFormulas()" title="Recargar lista">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button class="btn btn-sm btn-med-primary" onclick="abrirModalCrearFormula()">
+                  <i class="bi bi-plus-lg"></i>
+                  <span>Nueva Fórmula</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-clinical table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th># ID</th>
+                      <th>Paciente</th>
+                      <th>Prestador (EPS)</th>
+                      <th>Médico Tratante</th>
+                      <th>Fecha Emisión</th>
+                      <th class="text-center">Estado Autorización</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-formulas">
+                    <!-- Dinámico -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 bg-light border-top small text-muted d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-shield-exclamation text-warning me-1"></i> Recuerda: El Trigger 1 de PostgreSQL impedirá cualquier despacho si la fórmula tiene <code>esta_autorizada = false</code>.</span>
+                <span class="fst-italic">Endpoint: <code>/api/formulas</code></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================================
+             5. VISTA: MEDICAMENTOS (INVENTARIO)
+             ============================================================ -->
+        <section class="view-section" id="view-medicamentos">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex align-items-center gap-2">
+                <h3 class="card-title-clinical">
+                  <i class="bi bi-prescription2 text-success"></i>
+                  <span>Inventario de Medicamentos</span>
+                </h3>
+                <span class="badge bg-secondary-subtle text-secondary" id="count-medicamentos">0 registros</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm" style="max-width: 240px;">
+                  <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" class="form-control border-start-0 ps-0" id="search-medicamentos" placeholder="Filtrar medicamentos...">
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="cargarMedicamentos()" title="Recargar lista">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button class="btn btn-sm btn-med-primary" onclick="abrirModalCrearMedicamento()">
+                  <i class="bi bi-plus-lg"></i>
+                  <span>Nuevo Medicamento</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-clinical table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th># ID</th>
+                      <th>Nombre del Fármaco</th>
+                      <th>Lote</th>
+                      <th>Fecha Vencimiento</th>
+                      <th class="text-center">Stock Disponible</th>
+                      <th class="text-center">Estado Stock</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-medicamentos">
+                    <!-- Dinámico -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 bg-light border-top small text-muted d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-check2-circle text-success me-1"></i> El stock se descuenta automáticamente al despachar (Trigger 2) y se repone al eliminar (Trigger 3). Medicamentos vencidos son rechazados por Trigger 1.</span>
+                <span class="fst-italic">Endpoint: <code>/api/medicamentos</code></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================================
+             6. VISTA: PACIENTES
+             ============================================================ -->
+        <section class="view-section" id="view-pacientes">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex align-items-center gap-2">
+                <h3 class="card-title-clinical">
+                  <i class="bi bi-people text-info"></i>
+                  <span>Directorio de Pacientes</span>
+                </h3>
+                <span class="badge bg-secondary-subtle text-secondary" id="count-pacientes">0 registros</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm" style="max-width: 240px;">
+                  <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" class="form-control border-start-0 ps-0" id="search-pacientes" placeholder="Filtrar pacientes...">
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="cargarPacientes()" title="Recargar lista">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button class="btn btn-sm btn-med-primary" onclick="abrirModalCrearPaciente()">
+                  <i class="bi bi-plus-lg"></i>
+                  <span>Nuevo Paciente</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-clinical table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th># ID</th>
+                      <th>Documento de Identidad</th>
+                      <th>Nombre Completo</th>
+                      <th>Teléfono</th>
+                      <th>Fecha de Nacimiento</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-pacientes">
+                    <!-- Dinámico -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 bg-light border-top small text-muted d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-person-check text-primary me-1"></i> Pacientes afiliados sujetos a dispensación médica bajo fórmula registrada.</span>
+                <span class="fst-italic">Endpoint: <code>/api/pacientes</code></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================================
+             7. VISTA: PRESTADORES (EPS)
+             ============================================================ -->
+        <section class="view-section" id="view-prestadores">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex align-items-center gap-2">
+                <h3 class="card-title-clinical">
+                  <i class="bi bi-hospital text-danger"></i>
+                  <span>Prestadores de Salud (EPS / IPS)</span>
+                </h3>
+                <span class="badge bg-secondary-subtle text-secondary" id="count-prestadores">0 registros</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm" style="max-width: 240px;">
+                  <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" class="form-control border-start-0 ps-0" id="search-prestadores" placeholder="Filtrar EPS...">
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="cargarPrestadores()" title="Recargar lista">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button class="btn btn-sm btn-med-primary" onclick="abrirModalCrearPrestador()">
+                  <i class="bi bi-plus-lg"></i>
+                  <span>Nuevo Prestador</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-clinical table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th># ID</th>
+                      <th>NIT</th>
+                      <th>Nombre de la Entidad</th>
+                      <th>Teléfono</th>
+                      <th>Responsable del Prestador</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-prestadores">
+                    <!-- Dinámico -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 bg-light border-top small text-muted d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-building-check text-primary me-1"></i> Entidades autorizadas para emisión y respaldo de fórmulas clínicas.</span>
+                <span class="fst-italic">Endpoint: <code>/api/prestadores</code></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================================
+             8. VISTA: MÉDICOS
+             ============================================================ -->
+        <section class="view-section" id="view-medicos">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex align-items-center gap-2">
+                <h3 class="card-title-clinical">
+                  <i class="bi bi-person-badge text-teal"></i>
+                  <span>Directorio de Médicos Tratantes</span>
+                </h3>
+                <span class="badge bg-secondary-subtle text-secondary" id="count-medicos">0 registros</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm" style="max-width: 240px;">
+                  <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" class="form-control border-start-0 ps-0" id="search-medicos" placeholder="Filtrar médicos...">
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="cargarMedicos()" title="Recargar lista">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button class="btn btn-sm btn-med-primary" onclick="abrirModalCrearMedico()">
+                  <i class="bi bi-plus-lg"></i>
+                  <span>Nuevo Médico</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-clinical table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th># ID</th>
+                      <th>Registro Médico</th>
+                      <th>Nombre Completo</th>
+                      <th>Especialidad</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-medicos">
+                    <!-- Dinámico -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 bg-light border-top small text-muted d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-award text-primary me-1"></i> Profesionales avalados para prescribir medicamentos y expedir órdenes.</span>
+                <span class="fst-italic">Endpoint: <code>/api/medicos</code></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================================
+             9. VISTA: USUARIOS DEL SISTEMA (EMPLEADOS)
+             ============================================================ -->
+        <section class="view-section" id="view-usuarios">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex align-items-center gap-2">
+                <h3 class="card-title-clinical">
+                  <i class="bi bi-shield-lock text-primary"></i>
+                  <span>Usuarios del Sistema (Empleados / Despachadores)</span>
+                </h3>
+                <span class="badge bg-secondary-subtle text-secondary" id="count-usuarios">0 registros</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm" style="max-width: 240px;">
+                  <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" class="form-control border-start-0 ps-0" id="search-usuarios" placeholder="Filtrar empleados...">
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="cargarUsuarios()" title="Recargar lista">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button class="btn btn-sm btn-med-primary" onclick="abrirModalCrearUsuario()">
+                  <i class="bi bi-plus-lg"></i>
+                  <span>Nuevo Empleado</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-clinical table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th># ID</th>
+                      <th>Nombre del Empleado</th>
+                      <th>Rol en Farmacia</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-usuarios">
+                    <!-- Dinámico -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 bg-light border-top small text-muted d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-person-gear text-primary me-1"></i> Personal operativo y facultado para ejecutar y auditar entregas de fórmulas.</span>
+                <span class="fst-italic">Endpoint: <code>/api/usuarios</code></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ================================================================
+       MODALES FORMULARIOS (CRUD COMPLETO)
+       ================================================================ -->
+
+  <!-- 1. Modal Despacho (POST / PUT) -->
+  <div class="modal fade" id="modal-despacho" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-despacho-title">
+            <i class="bi bi-box-seam me-2"></i> Registrar Despacho de Medicamento
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="form-despacho">
+          <input type="hidden" id="despacho-id">
+          <div class="modal-body">
+            
+            <div class="alert alert-info border-info-subtle small d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-info-circle-fill fs-5 text-info"></i>
+              <div>
+                <strong>Activación de Triggers PostgreSQL:</strong> Al guardar, el <strong>Trigger 1</strong> validará que la fórmula esté autorizada y el medicamento vigente, y calculará automáticamente la <em>cantidad pendiente</em> y el <em>estado</em>. El <strong>Trigger 2</strong> descontará el stock e insertará la auditoría.
+              </div>
+            </div>
+
+            <div class="row g-3">
+              <!-- Select Fórmula -->
+              <div class="col-md-12">
+                <label for="despacho-id-formula" class="form-label">Fórmula Médica Prescrita *</label>
+                <select class="form-select" id="despacho-id-formula" required>
+                  <option value="">Seleccione una fórmula médica...</option>
+                </select>
+                <div class="form-text">Muestra paciente, médico y estado de autorización de la fórmula.</div>
+              </div>
+
+              <!-- Select Medicamento -->
+              <div class="col-md-6">
+                <label for="despacho-id-medicamento" class="form-label">Medicamento a Despachar *</label>
+                <select class="form-select" id="despacho-id-medicamento" required>
+                  <option value="">Seleccione el medicamento...</option>
+                </select>
+                <div class="form-text">Muestra stock disponible en bodega y fecha de vencimiento.</div>
+              </div>
+
+              <!-- Select Empleado -->
+              <div class="col-md-6">
+                <label for="despacho-id-empleado" class="form-label">Empleado Despachador *</label>
+                <select class="form-select" id="despacho-id-empleado" required>
+                  <option value="">Seleccione el despachador responsable...</option>
+                </select>
+              </div>
+
+              <!-- Cantidad Formulada -->
+              <div class="col-md-6">
+                <label for="despacho-cantidad-formulada" class="form-label">Cantidad Formulada por el Médico *</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-capsule"></i></span>
+                  <input type="number" class="form-control" id="despacho-cantidad-formulada" min="1" placeholder="Ej. 30" required>
+                </div>
+                <div class="form-text">Total prescrito en la fórmula clínica.</div>
+              </div>
+
+              <!-- Cantidad Entregada -->
+              <div class="col-md-6">
+                <label for="despacho-cantidad-entregada" class="form-label">Cantidad Entregada al Paciente *</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-box-arrow-right"></i></span>
+                  <input type="number" class="form-control" id="despacho-cantidad-entregada" min="0" placeholder="Ej. 15" required>
+                </div>
+                <div class="form-text">Unidades dispensadas en este momento.</div>
+              </div>
+
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-med-primary" id="btn-save-despacho">
+              <i class="bi bi-check2-circle me-1"></i> Guardar Despacho
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 2. Modal Fórmula Médica (POST / PUT) -->
+  <div class="modal fade" id="modal-formula" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-formula-title">
+            <i class="bi bi-file-earmark-medical me-2"></i> Registrar Fórmula Médica
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="form-formula">
+          <input type="hidden" id="formula-id">
+          <div class="modal-body">
+            <div class="row g-3">
+              
+              <!-- Paciente -->
+              <div class="col-md-6">
+                <label for="formula-id-paciente" class="form-label">Paciente Afiliado *</label>
+                <select class="form-select" id="formula-id-paciente" required>
+                  <option value="">Seleccione el paciente...</option>
+                </select>
+              </div>
+
+              <!-- Prestador (EPS) -->
+              <div class="col-md-6">
+                <label for="formula-id-prestador" class="form-label">Prestador de Salud (EPS) *</label>
+                <select class="form-select" id="formula-id-prestador" required>
+                  <option value="">Seleccione la EPS prestadora...</option>
+                </select>
+              </div>
+
+              <!-- Médico Tratante -->
+              <div class="col-md-6">
+                <label for="formula-id-medico" class="form-label">Médico Tratante Prescriptor *</label>
+                <select class="form-select" id="formula-id-medico" required>
+                  <option value="">Seleccione el médico tratante...</option>
+                </select>
+              </div>
+
+              <!-- Fecha de Emisión -->
+              <div class="col-md-6">
+                <label for="formula-fecha-emision" class="form-label">Fecha de Emisión *</label>
+                <input type="date" class="form-control" id="formula-fecha-emision" required>
+              </div>
+
+              <!-- Switch Autorización -->
+              <div class="col-12 mt-4">
+                <div class="p-3 bg-light rounded border d-flex align-items-center justify-content-between">
+                  <div>
+                    <label class="form-check-label fw-bold text-dark d-block mb-1" for="formula-esta-autorizada">
+                      Estado de Autorización de la Fórmula Médica
+                    </label>
+                    <small class="text-muted">Si está inactiva (No autorizada), el <strong>Trigger 1</strong> rechazará cualquier intento de despacho en bodega.</small>
+                  </div>
+                  <div class="form-check form-switch fs-4">
+                    <input class="form-check-input" type="checkbox" role="switch" id="formula-esta-autorizada" checked>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-med-primary" id="btn-save-formula">
+              <i class="bi bi-check2-circle me-1"></i> Guardar Fórmula
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 3. Modal Medicamento (POST / PUT) -->
+  <div class="modal fade" id="modal-medicamento" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-medicamento-title">
+            <i class="bi bi-prescription2 me-2"></i> Registrar Medicamento
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="form-medicamento">
+          <input type="hidden" id="medicamento-id">
+          <div class="modal-body">
+            <div class="row g-3">
+              
+              <div class="col-12">
+                <label for="medicamento-nombre" class="form-label">Nombre del Fármaco / Presentación *</label>
+                <input type="text" class="form-control" id="medicamento-nombre" placeholder="Ej. Amoxicilina 500mg cápsulas" required>
+              </div>
+
+              <div class="col-md-6">
+                <label for="medicamento-lote" class="form-label">Código de Lote *</label>
+                <input type="text" class="form-control" id="medicamento-lote" placeholder="Ej. LOT-2026-X4" required>
+              </div>
+
+              <div class="col-md-6">
+                <label for="medicamento-fecha-vencimiento" class="form-label">Fecha de Vencimiento *</label>
+                <input type="date" class="form-control" id="medicamento-fecha-vencimiento" required>
+              </div>
+
+              <div class="col-12">
+                <label for="medicamento-stock" class="form-label">Stock Inicial en Bodega *</label>
+                <input type="number" class="form-control" id="medicamento-stock" min="0" placeholder="Ej. 100" required>
+                <div class="form-text">Se incrementa o decrementa automáticamente con los triggers.</div>
+              </div>
+
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-med-primary" id="btn-save-medicamento">
+              <i class="bi bi-check2-circle me-1"></i> Guardar Medicamento
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 4. Modal Paciente (POST / PUT) -->
+  <div class="modal fade" id="modal-paciente" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-paciente-title">
+            <i class="bi bi-people me-2"></i> Registrar Paciente
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="form-paciente">
+          <input type="hidden" id="paciente-id">
+          <div class="modal-body">
+            <div class="row g-3">
+              
+              <div class="col-md-6">
+                <label for="paciente-documento" class="form-label">Documento de Identidad *</label>
+                <input type="text" class="form-control" id="paciente-documento" placeholder="Ej. 1098765432" required>
+              </div>
+
+              <div class="col-md-6">
+                <label for="paciente-telefono" class="form-label">Teléfono de Contacto</label>
+                <input type="text" class="form-control" id="paciente-telefono" placeholder="Ej. 3123456789">
+              </div>
+
+              <div class="col-12">
+                <label for="paciente-nombre-completo" class="form-label">Nombre Completo *</label>
+                <input type="text" class="form-control" id="paciente-nombre-completo" placeholder="Ej. María Fernanda Gómez" required>
+              </div>
+
+              <div class="col-12">
+                <label for="paciente-fecha-nacimiento" class="form-label">Fecha de Nacimiento *</label>
+                <input type="date" class="form-control" id="paciente-fecha-nacimiento" required>
+              </div>
+
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-med-primary" id="btn-save-paciente">
+              <i class="bi bi-check2-circle me-1"></i> Guardar Paciente
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 5. Modal Prestador (POST / PUT) -->
+  <div class="modal fade" id="modal-prestador" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-prestador-title">
+            <i class="bi bi-hospital me-2"></i> Registrar Prestador (EPS)
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="form-prestador">
+          <input type="hidden" id="prestador-id">
+          <div class="modal-body">
+            <div class="row g-3">
+              
+              <div class="col-md-6">
+                <label for="prestador-nit" class="form-label">NIT Entidad *</label>
+                <input type="text" class="form-control" id="prestador-nit" placeholder="Ej. 900.123.456-1" required>
+              </div>
+
+              <div class="col-md-6">
+                <label for="prestador-telefono" class="form-label">Teléfono Corporativo</label>
+                <input type="text" class="form-control" id="prestador-telefono" placeholder="Ej. (601) 7890123">
+              </div>
+
+              <div class="col-12">
+                <label for="prestador-nombre" class="form-label">Razón Social / Nombre EPS *</label>
+                <input type="text" class="form-control" id="prestador-nombre" placeholder="Ej. Sanitas EPS S.A.S." required>
+              </div>
+
+              <div class="col-12">
+                <label for="prestador-responsable" class="form-label">Responsable / Delegado EPS *</label>
+                <input type="text" class="form-control" id="prestador-responsable" placeholder="Ej. Dr. Carlos Rodríguez" required>
+              </div>
+
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-med-primary" id="btn-save-prestador">
+              <i class="bi bi-check2-circle me-1"></i> Guardar Prestador
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 6. Modal Médico (POST / PUT) -->
+  <div class="modal fade" id="modal-medico" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-medico-title">
+            <i class="bi bi-person-badge me-2"></i> Registrar Médico
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="form-medico">
+          <input type="hidden" id="medico-id">
+          <div class="modal-body">
+            <div class="row g-3">
+              
+              <div class="col-12">
+                <label for="medico-registro" class="form-label">Registro Médico / Tarjeta Profesional *</label>
+                <input type="text" class="form-control" id="medico-registro" placeholder="Ej. RM-54321-COL" required>
+              </div>
+
+              <div class="col-12">
+                <label for="medico-nombre-completo" class="form-label">Nombre Completo del Profesional *</label>
+                <input type="text" class="form-control" id="medico-nombre-completo" placeholder="Ej. Dr. Alejandro Morales" required>
+              </div>
+
+              <div class="col-12">
+                <label for="medico-especialidad" class="form-label">Especialidad Médica</label>
+                <input type="text" class="form-control" id="medico-especialidad" placeholder="Ej. Medicina Interna, Cardiología...">
+              </div>
+
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-med-primary" id="btn-save-medico">
+              <i class="bi bi-check2-circle me-1"></i> Guardar Médico
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 7. Modal Usuario (POST / PUT) -->
+  <div class="modal fade" id="modal-usuario" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-usuario-title">
+            <i class="bi bi-shield-lock me-2"></i> Registrar Empleado del Sistema
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="form-usuario">
+          <input type="hidden" id="usuario-id">
+          <div class="modal-body">
+            <div class="row g-3">
+              
+              <div class="col-12">
+                <label for="usuario-nombre" class="form-label">Nombre Completo del Empleado *</label>
+                <input type="text" class="form-control" id="usuario-nombre" placeholder="Ej. Laura Marcela Rivas" required>
+              </div>
+
+              <div class="col-12">
+                <label for="usuario-rol" class="form-label">Rol Operativo *</label>
+                <select class="form-select" id="usuario-rol" required>
+                  <option value="">Seleccione el rol...</option>
+                  <option value="Regente de Farmacia">Regente de Farmacia</option>
+                  <option value="Auxiliar de Farmacia">Auxiliar de Farmacia</option>
+                  <option value="Químico Farmacéutico">Químico Farmacéutico</option>
+                  <option value="Auditor de Calidad">Auditor de Calidad</option>
+                  <option value="Administrador">Administrador</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-med-primary" id="btn-save-usuario">
+              <i class="bi bi-check2-circle me-1"></i> Guardar Empleado
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Modal Información y Documentación de Triggers -->
+  <div class="modal fade" id="modal-info-triggers" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-shield-check text-info me-2"></i> Documentación de Triggers PostgreSQL
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <h6 class="fw-bold text-primary mb-2">Arquitectura de Integridad en la Base de Datos</h6>
+          <p class="text-secondary small">
+            El sistema delega la lógica crítica de negocio al motor de PostgreSQL mediante tres Triggers en cascada que garantizan consistencia absoluta, impidiendo inconsistencias farmacológicas sin depender exclusivamente del frontend o backend.
+          </p>
+
+          <div class="accordion" id="accordionTriggers">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                  <strong class="text-primary me-2">Trigger 1:</strong> <code>tr_validar_despacho</code> (BEFORE INSERT OR UPDATE)
+                </button>
+              </h2>
+              <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionTriggers">
+                <div class="accordion-body small text-secondary">
+                  <ul>
+                    <li><strong>Validación de Fórmula:</strong> Verifica que la fórmula médica asociada tenga <code>esta_autorizada = TRUE</code>. Si no lo está, lanza una excepción que es capturada por el frontend.</li>
+                    <li><strong>Validación de Vencimiento:</strong> Comprueba que <code>medicamentos.fecha_vencimiento &gt;= CURRENT_DATE</code>. Si el lote está caducado, aborta la transacción.</li>
+                    <li><strong>Validación de Stock:</strong> Asegura que <code>medicamentos.stock &gt;= cantidad_entregada</code>.</li>
+                    <li><strong>Cálculo Automático de Pendientes:</strong> Ejecuta <code>cantidad_pendiente = cantidad_formulada - cantidad_entregada</code>.</li>
+                    <li><strong>Cálculo Automático de Estado:</strong> Asigna <code>ENTREGADO</code> si la entrega cubre la formulación, <code>PARCIAL</code> si es parcial y &gt; 0, o <code>PENDIENTE</code> si es 0.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingTwo">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                  <strong class="text-success me-2">Trigger 2:</strong> <code>tr_descontar_stock</code> (AFTER INSERT OR UPDATE)
+                </button>
+              </h2>
+              <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionTriggers">
+                <div class="accordion-body small text-secondary">
+                  <ul>
+                    <li>Actualiza el inventario en la tabla <code>medicamentos</code> reduciendo el stock en la cantidad entregada (o ajustando la diferencia en caso de UPDATE).</li>
+                    <li>Inserta automáticamente una fila en <code>farmacia.historial_stock</code> registrando <code>stock_anterior</code>, <code>stock_nuevo</code>, <code>current_user</code> de PostgreSQL y la marca de tiempo exacta.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                  <strong class="text-danger me-2">Trigger 3:</strong> <code>tr_reintegrar_stock_eliminar</code> (AFTER DELETE)
+                </button>
+              </h2>
+              <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionTriggers">
+                <div class="accordion-body small text-secondary">
+                  <ul>
+                    <li>Al eliminar un registro de despacho, restituye automáticamente las unidades entregadas al stock de bodega en <code>medicamentos</code>.</li>
+                    <li>Registra en <code>historial_stock</code> el movimiento de reintegro por reversión.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================================================================
+       SCRIPTS (Bootstrap CDN + SweetAlert2 CDN + App JS)
+       ================================================================ -->
+  <!-- Bootstrap 5.3 JS Bundle CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <!-- Lógica Principal de la SPA -->
+  <script src="js/app.js"></script>
+</body>
+</html>
+
